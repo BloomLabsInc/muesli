@@ -12,6 +12,8 @@ final class MeetingRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
     var onFailure: (@Sendable (String) -> Void)?
 
     func start(in directory: URL) async throws {
+        let free = try directory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage ?? 0
+        guard free > 2_000_000_000 else { throw CaptureError.message("At least 2 GB of free space is needed to start a meeting recording.") }
         guard await AVCaptureDevice.requestAccess(for: .audio) else { throw CaptureError.message("Microphone permission was denied.") }
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let display = content.displays.first else { throw CaptureError.message("No display is available for system-audio capture.") }
@@ -48,7 +50,11 @@ final class MeetingRecorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
             return sinks.values.flatMap { sink in sink.finish(); return sink.files }
         }
         guard !files.isEmpty else { throw CaptureError.message("No audio was captured. Check microphone and system-audio permissions.") }
-        return files
+        return files.sorted {
+            let a = (try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
+            let b = (try? $1.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
+            return a == b ? $0.lastPathComponent < $1.lastPathComponent : a < b
+        }
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
@@ -86,6 +92,8 @@ private final class AudioSink {
         guard result == noErr else { throw CaptureError.message("Audio buffer conversion failed (\(result)).") }
         if file == nil || format != incoming || Double(frames) >= incoming.sampleRate * 30 {
             finish()
+            let free = try directory.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]).volumeAvailableCapacityForImportantUsage ?? 0
+            guard free > 200_000_000 else { throw CaptureError.message("Recording stopped because disk space is low. Captured audio is preserved.") }
             let url = directory.appendingPathComponent("\(name)-\(String(format: "%04d", files.count)).caf")
             file = try AVAudioFile(forWriting: url, settings: incoming.settings, commonFormat: incoming.commonFormat, interleaved: incoming.isInterleaved)
             format = incoming; frames = 0; files.append(url)

@@ -1,42 +1,56 @@
 # Bloom Meetings
 
-A minimal, local-only Mac meeting recorder in Bloom's Muesli fork. This is a separate app target, not the upstream Muesli release with a new name.
+Bloom's small Mac meeting recorder, built as a separate app in the Muesli fork. It uses macOS audio capture and local Parakeet transcription; it does not run the upstream Muesli account, telemetry, cloud sync or updater.
 
-## Current build
+## Everyday use
 
-- Manually record microphone and system audio in 30-second CAF segments, then transcribe on the Mac with bundled Parakeet v3 models.
-- Import audio, edit the transcript and export Markdown.
-- Save transcripts automatically and restore the last transcript after reopening.
-- Keep source audio and transcripts in the app's private local container. The Recordings folder button opens the archive.
-- No account, analytics, iCloud, remote inference, upload endpoint or updater.
+Leave Bloom Meetings running (Open at login is available). After a supported call app or browser uses the microphone for four seconds, a prompt offers **Record meeting**. Recording starts only after that click. **Stop recording** saves the audio and transcribes on the Mac. Notes and transcript edits save automatically. Import, export, an archive and **Recover transcript** are available.
 
-The signed macOS App Sandbox grants only audio input and user-selected file read/write. It has no network entitlement. Model loading uses `AsrModels.loadLocal`; the build requires existing model files and runtime cannot download them.
+Detection observes audio-process activity, not calendars or browser pages. Browser dictation can also cause a prompt. It recognizes Dia/Arc's separate audio helper, Chrome, Safari, Edge, Firefox, Zoom, Teams, Slack, FaceTime, Webex and WhatsApp. Brief microphone mutes do not repeatedly prompt. Calendar reminders and joining meeting links are not implemented.
 
-The target does not link the Muesli application shell, TelemetryDeck, Sparkle, CloudKit, remote providers, dictation, screen history or computer-use features. ScreenCaptureKit receives audio outputs only; no screen output is registered or saved.
+## Data and authentication
 
-## Build and verify
+- Audio stays in this app's private Mac container. Capture writes microphone and system audio to separate 30-second PCM CAF segments, retaining audio and partial transcripts after an interrupted transcription. No screen video is captured.
+- Optional **Back up transcripts** sends transcripts, notes and titles only to Bloom's `bloom-meetings` Convex project. Production: `reminiscent-buzzard-959`; development: `fleet-stingray-478`, both in Bloom Labs.
+- Convex Auth email codes allow verified `@bloom.diy` accounts only. Every meeting query and mutation checks that identity and restricts records to their owner. Sessions stay in this app's Keychain entry. No credential is bundled in the app.
+- Cloud restore retrieves the latest 20 meetings and does not overwrite existing local folders. Conflicting revisions are rejected; the local copy is retained. Audio itself is not backed up.
+- Existing upstream Muesli data is not migrated, overwritten or deleted.
 
-Requires macOS 15+, Xcode/Swift 6 and local Parakeet v3 Core ML weights. Dependency resolution happens during the build, not in the installed app.
+The app has the macOS sandbox, audio input, user-selected file access and outbound network entitlements. It bundles its speech model and has no runtime model download. Writing Tools are disabled in the editors. User-directed exports, macOS Services and OS backups remain outside the app's controls.
+
+## Build and checks
+
+macOS 15+, Swift 6 and local Parakeet v3 Core ML weights are required.
 
 ```sh
+swift test --package-path native/BloomMeetings
+BLOOM_MEETINGS_SIGNING_IDENTITY='your Apple Development identity' \
 BLOOM_MEETINGS_MODEL_DIR=/absolute/path/to/parakeet-tdt-0.6b-v3 \
 BLOOM_MEETINGS_TEST_FIXTURE=/absolute/path/to/synthetic-fixture.wav \
 ./native/BloomMeetings/build-local.sh
 python3 native/BloomMeetings/verify-package.py 'native/BloomMeetings/dist/Bloom Meetings.app'
+cd backend
+bun install --frozen-lockfile
+bun run typecheck
+bun run test
 ```
 
-The synthetic fixture must include the words “synthetic” and “Friday”. The verifier checks the exact signed entitlements, proves an otherwise reachable localhost server receives no request from the packaged app, and runs bundled-model transcription. It must not use a private meeting recording.
+The synthetic fixture must contain “synthetic” and “Friday”. The package verifier checks the exact signed entitlements and bundled-model transcription. `BloomMeetings --verify-capture` runs a 65-second capture check, reports only track durations/counts, and removes its temporary audio afterwards. Never use private recordings for fixtures.
 
-## Boundaries and remaining work
+## Current limits
 
-This is a local prototype. The installed build is signed with David’s Apple Development identity and hardened runtime; builds default to ad-hoc signing unless `BLOOM_MEETINGS_SIGNING_IDENTITY` is set. Automatic meeting detection, chronological speaker merging, an archive browser, notarized distribution and Bloom-owned updates are not implemented. Microphone and other-participant audio currently transcribe into separate sections. Crash recovery of the final open segment and device switching have not been validated. It is not yet a finished Granola replacement.
+This is an internal app, signed locally with David's Apple Development identity. It is not notarized and has no automatic update feed. The Bloom Project imports this repository, but its Environment definition does not yet bind the standalone Convex deployment. Gmail/Calendar through Bloom Connections is not wired up.
 
-Upstream Muesli's app, preferences and data are not migrated, deleted or overwritten. This app uses bundle ID `diy.bloom.meetings` and a separate sandbox. Explicitly exported files can be placed in a cloud-synced folder by the user; the app itself does not sync them. macOS backup policies remain outside the app. Writing Tools are disabled in both text fields; user-initiated OS Services and exports are outside the app’s network boundary.
+Transcripts group audio chunks by microphone/other-participant track; this is not word-level speaker diarization. A short capture is evidence of working capture, not proof of multi-hour or device-switch reliability. Keep original audio until you have checked important transcripts. Recovery preserves the previous edited transcript in a separate local file.
 
-Muesli's MIT license remains in the repository. FluidAudio and the speech model retain their own licenses; include their notices and verify model redistribution terms before publishing a distributable bundle. No upstream signing key or update feed is used.
+Muesli's MIT license, FluidAudio's Apache 2.0 license, and NVIDIA/FluidInference model attribution are included in the bundle. The model cards identify CC BY 4.0; see THIRD_PARTY_NOTICES.md. No upstream signing identity or update feed is used.
 
-## Validation on 2026-11-10
+## Checks on David's Mac, 2026-11-10
 
-Release build and exact-entitlement/network-denial/bundled-transcription checks passed. Native UI checks passed: synthetic import, edited title and transcript restored after quit/reopen, short microphone + system capture, local save and transcription. These were short functional checks, not a long-meeting reliability benchmark.
+- Verified Bloom email sign-in, Keychain persistence across relaunch, and private transcript backup.
+- A live browser microphone check initially failed to prompt: Dia reports `company.thebrowser.browser.helper`. A regression test failed before adding that mapping and passed afterwards. Bloom's own prompt then opened, including after closing the main window, and its Record button started capture.
+- A 65-second capture probe produced 68.94 seconds of system audio and 68.917 seconds of microphone audio across six files. Both tracks survived two segment rotations. Probe audio was removed.
+- A synthetic call recorded through the popup transcribed both tracks and backed up successfully. A temporarily displaced synthetic meeting was restored from Convex with identical transcript, notes, owner and revision; original files were preserved.
+- Native tests cover detection/mute suppression, the Dia helper, legacy migration, and corrupt-archive isolation. Backend tests cover domain/verification rejection, owner isolation, anonymous denial, idempotency and conflicting revisions. Type-check and packaged entitlement/transcription checks passed.
 
-Independent Opus 5.5 review identified AAC finalization/backpressure risks, UI-only transcript storage, Writing Tools, stale package contents and capture lifecycle issues. The current build uses segmented PCM CAF, finalizes all tracks, preserves partial transcription, autosaves imports/edits, disables Writing Tools, prevents closing an active recording window, serializes buffer state and recreates the generated bundle. Further crash/device-switch recovery tests, recovery UI, model provenance/redistribution checks and release signing remain open.
+These are short functional checks. Multi-hour calls, Bluetooth device changes and real meeting transcript accuracy have not been validated.

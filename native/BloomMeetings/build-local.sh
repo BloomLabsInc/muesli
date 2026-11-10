@@ -12,6 +12,9 @@ BIN="$(swift build --package-path "$ROOT" -c release --show-bin-path)"
 rm -rf "$APP" # This path is the generated bundle inside the chosen build output.
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/Models"
 cp "$BIN/BloomMeetings" "$APP/Contents/MacOS/BloomMeetings"
+cp "$ROOT/THIRD_PARTY_NOTICES.md" "$APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
+cp "$ROOT/../../LICENSE" "$APP/Contents/Resources/Muesli-LICENSE.txt"
+cp "$ROOT/.build/checkouts/FluidAudio/LICENSE" "$APP/Contents/Resources/FluidAudio-LICENSE.txt"
 ditto "$MODEL" "$APP/Contents/Resources/Models/parakeet-tdt-0.6b-v3"
 if [ -n "${BLOOM_MEETINGS_TEST_FIXTURE:-}" ]; then cp "$BLOOM_MEETINGS_TEST_FIXTURE" "$APP/Contents/Resources/synthetic-fixture.wav"; fi
 cat > "$APP/Contents/Info.plist" <<'PLIST'
@@ -22,8 +25,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>Bloom Meetings</string>
 <key>CFBundleExecutable</key><string>BloomMeetings</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>0.2.0</string>
+<key>CFBundleVersion</key><string>3</string>
 <key>LSMinimumSystemVersion</key><string>15.0</string>
 <key>NSMicrophoneUsageDescription</key><string>Record your side of a meeting. Audio stays on this Mac.</string>
 <key>NSAudioCaptureUsageDescription</key><string>Record the other meeting participants. Audio stays on this Mac.</string>
