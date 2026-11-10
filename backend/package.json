@@ -1,0 +1,21 @@
+{
+  "name": "bloom-meetings-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "convex dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "convex": "1.46.0",
+    "@convex-dev/auth": "0.0.98",
+    "@auth/core": "0.41.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "convex-test": "0.0.69",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

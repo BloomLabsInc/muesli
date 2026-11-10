@@ -117,3 +117,7 @@ context.md
 *~
 .vercel
 docs/reports/meeting-transcription-pipeline.svg
+
+# Bloom Meetings backend local credentials
+backend/.env.local
+backend/node_modules/
