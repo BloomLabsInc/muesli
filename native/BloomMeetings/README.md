@@ -54,3 +54,11 @@ Muesli's MIT license, FluidAudio's Apache 2.0 license, and NVIDIA/FluidInference
 - Native tests cover detection/mute suppression, the Dia helper, legacy migration, and corrupt-archive isolation. Backend tests cover domain/verification rejection, owner isolation, anonymous denial, idempotency and conflicting revisions. Type-check and packaged entitlement/transcription checks passed.
 
 These are short functional checks. Multi-hour calls, Bluetooth device changes and real meeting transcript accuracy have not been validated.
+
+### Independent review follow-through
+
+Opus 5.5/high completed an independent source/dependency review. The final build pads sub-0.3-second tails without discarding their samples, retains warnings for unreadable audio, backs up partial transcripts as incomplete, keeps detection active against App Nap, presents the prompt across full-screen Spaces, and warns visibly if capture stops early. Backup processes each meeting independently and reloads it immediately before upload, preserving edits made during other uploads. Imported movie/MP3 files remain discoverable by recovery.
+
+The backup regression was run against the former fail-fast loop and failed, then passed with per-meeting isolation. Seven native and three backend tests passed. Real sign-in and production destination were verified, dependencies pinned, and builds use David's stable signing identity.
+
+Capture does not silently restart after macOS stops sharing: that may be an intentional privacy action. The app warns and preserves captured audio; start a new recording to continue. Full-screen presentation is configured but not yet exercised in a real full-screen meeting. Wear headphones to avoid capturing speaker audio again through the microphone; this small target has no echo cancellation.

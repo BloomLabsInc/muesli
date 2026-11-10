@@ -26,7 +26,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>BloomMeetings</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.2.0</string>
-<key>CFBundleVersion</key><string>3</string>
+<key>CFBundleVersion</key><string>4</string>
 <key>LSMinimumSystemVersion</key><string>15.0</string>
 <key>NSMicrophoneUsageDescription</key><string>Record your side of a meeting. Audio stays on this Mac.</string>
 <key>NSAudioCaptureUsageDescription</key><string>Record the other meeting participants. Audio stays on this Mac.</string>

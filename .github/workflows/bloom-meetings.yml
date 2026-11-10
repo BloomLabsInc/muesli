@@ -3,7 +3,7 @@ on:
   pull_request:
     paths: ['native/BloomMeetings/**', 'backend/**', '.github/workflows/bloom-meetings.yml']
   push:
-    branches: [main, codex/bloom-local-meetings]
+    branches: [main]
     paths: ['native/BloomMeetings/**', 'backend/**', '.github/workflows/bloom-meetings.yml']
 permissions:
   contents: read
