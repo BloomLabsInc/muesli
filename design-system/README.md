@@ -519,3 +519,8 @@ the compact header sync control and Settings → General sync setup, status and
 recovery actions available. Background sync behavior and saved preferences are
 unchanged. Accent labels and tinted actions use the shared 6:1 `accentText` role;
 never use the raw saved accent as a label color on a neutral surface.
+
+Time Turner Capture settings and onboarding share the canonical Capture menu:
+Focused window or All displays. Whole-display history shows a display symbol and
+display/app label instead of attributing the image to a single app. All displays
+keeps one compact scrubber; each monitor's sample remains independently selectable.
