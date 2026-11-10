@@ -520,7 +520,12 @@ recovery actions available. Background sync behavior and saved preferences are
 unchanged. Accent labels and tinted actions use the shared 6:1 `accentText` role;
 never use the raw saved accent as a label color on a neutral surface.
 
-Time Turner Capture settings and onboarding share the canonical Capture menu:
-Focused window or All displays. Whole-display history shows a display symbol and
+Time Turner Capture settings use the canonical Capture menu: Focused window,
+All displays, or Selected displays. Setup adds a multi-select monitor preview step
+after permissions, reusing the meeting screen picker's thumbnail renderer. Connected
+monitors start checked on first setup; choices are saved only at Finish. Settings
+“Choose displays…” edits the same persistent selection with Save/Cancel. Disconnected
+monitors retain their selection; newly connected ones require selection. Preview
+cards use semantic borders, checkmarks and accessible selection traits. Whole-display history shows a display symbol and
 display/app label instead of attributing the image to a single app. All displays
 keeps one compact scrubber; each monitor's sample remains independently selectable.

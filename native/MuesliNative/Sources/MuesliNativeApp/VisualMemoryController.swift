@@ -452,6 +452,7 @@ final class VisualMemoryController {
         let changed = ambientConfig?.timeTurnerEnabled != config.timeTurnerEnabled
             || ambientConfig?.timeTurnerPauseOnInactivity != config.timeTurnerPauseOnInactivity
             || ambientConfig?.timeTurnerCaptureScope != config.timeTurnerCaptureScope
+            || ambientConfig?.timeTurnerSelectedDisplays != config.timeTurnerSelectedDisplays
             || ambientConfig?.timeTurnerInterval != config.timeTurnerInterval
             || ambientConfig?.timeTurnerBudget != config.timeTurnerBudget
             || ambientConfig?.timeTurnerExcludedApps != config.timeTurnerExcludedApps
@@ -552,7 +553,7 @@ final class VisualMemoryController {
             lastFingerprint = nil
             return
         }
-        if ambientConfig?.timeTurnerCaptureScope == "all_displays" {
+        if ["all_displays", "selected_displays"].contains(ambientConfig?.timeTurnerCaptureScope ?? "") {
             await captureDisplays(generation: generation)
             return
         }
@@ -641,13 +642,7 @@ final class VisualMemoryController {
     }
 
     private func displayIdentity(_ display: SCDisplay) -> VisualMemoryDisplay {
-        let uuid = CGDisplayCreateUUIDFromDisplayID(display.displayID).map {
-            CFUUIDCreateString(nil, $0.takeRetainedValue()) as String
-        } ?? "display-\(display.displayID)"
-        let name = NSScreen.screens.first {
-            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == display.displayID
-        }?.localizedName ?? "Display \(display.displayID)"
-        return .init(id: display.displayID, uuid: uuid, name: name)
+        TimeTurnerDisplayIdentity.metadata(display)
     }
 
     private var permitsDisplayCapture: Bool {
@@ -663,8 +658,18 @@ final class VisualMemoryController {
             await refreshSpace()
             guard freeBytes > 2_000_000_000 else { ambientStatus = "Paused — disk space low"; return }
             let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
-            let displays = content.displays.filter { CGDisplayMirrorsDisplay($0.displayID) == kCGNullDirectDisplay }
+            let displays = content.displays.filter {
+                CGDisplayMirrorsDisplay($0.displayID) == kCGNullDirectDisplay
+                    && VisualMemoryDisplayPolicy.selects(uuid: displayIdentity($0).uuid,
+                        scope: ambientConfig?.timeTurnerCaptureScope ?? "focused",
+                        selected: Set(ambientConfig?.timeTurnerSelectedDisplays.keys.map { $0 } ?? []))
+            }
+            guard generation == ambientGeneration, permitsDisplayCapture else { return }
             displayChanges.retain(displays: Set(displays.map { displayIdentity($0).uuid }))
+            guard !displays.isEmpty else {
+                ambientStatus = "Waiting for selected displays"
+                return
+            }
             var excluded = excludedAmbientApps
             // Auxiliary/system surfaces (widgets, notifications, capture helpers) are
             // not normal app windows, even when WindowServer reports layer zero.
@@ -725,7 +730,7 @@ final class VisualMemoryController {
                     })).sorted { $0.bundleID < $1.bundleID }
                     let source = ([identity.name] + apps.map(\.name)).joined(separator: " · ")
                     capturedAny = true
-                    ambientStatus = "On · all displays"
+                    ambientStatus = "On · displays"
                     onAmbientCaptureActivity?(true)
                     if displayChanges.isUnchanged(display: identity.uuid, fingerprint: result.fingerprint, text: result.text, source: source) { continue }
                     let item = VisualMemoryItem(kind: .moment, capturedAt: captured, source: source, text: result.text,
@@ -751,7 +756,7 @@ final class VisualMemoryController {
                 }
             }
             guard generation == ambientGeneration, permitsDisplayCapture else { return }
-            ambientStatus = capturedAny ? (failedAny ? "On · some displays unavailable" : "On · all displays")
+            ambientStatus = capturedAny ? (failedAny ? "On · some displays unavailable" : "On · displays")
                 : (failedAny ? "Capture unavailable" : "No eligible windows")
             if savedAny { await refreshCatalog(); await compactAmbientIfNeeded() }
         } catch { ambientStatus = "Capture unavailable"; message = error.localizedDescription }
